@@ -4,10 +4,40 @@ require "../private/db.class.php";
 
 $DB = new DB;
 
+/*
+Action "Reg"
+{
+    POST | startupKey | -->
+    POST | username | -->
 
-var_dump($DB->Connect());
+    RETURN | uniqueKey | <--
+    RETURN | responseCode | <--
+    RETURN | msg | <--
+}
 
-echo("<br>");
+Action "Upload"
+{
+    POST | uniqueKey | -->
+    POST | score | -->
+    POST | diff | -->
 
-var_dump($DB->Close());
+    RETURN | responseCode | <--
+    RETURN | msg | <--
+}
+*/
+
+
+if (isset($_POST['startupKey']) && isset($_POST['username']))
+{
+    echo(json_encode($DB->ActionReg($_POST['startupKey'], $_POST['username'])));
+}
+else if (isset($_POST['uniqueKey']) && isset($_POST['score']) && isset($_POST['diff']))
+{
+    echo(json_encode($DB->ActionUpload($_POST['uniqueKey'], $_POST['score'], $_POST['diff'])));
+}
+else
+{
+    echo(json_encode(array('responseCode' => "e150", 'msg' => "No sutible action found!")));
+}
+
 ?>
