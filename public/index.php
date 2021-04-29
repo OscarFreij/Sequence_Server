@@ -15,6 +15,17 @@ Action "Reg"
     RETURN | msg | <--
 }
 
+Action "Login" // Not made yet
+{
+    POST | startupKey | -->
+    POST | uniqueKey | -->
+
+    RETURN | username | <--
+    RETURN | score | <--
+    RETURN | responseCode | <--
+    RETURN | msg | <--
+}
+
 Action "Upload"
 {
     POST | uniqueKey | -->
@@ -34,6 +45,10 @@ if (isset($_POST['startupKey']) && isset($_POST['username']))
 else if (isset($_POST['uniqueKey']) && isset($_POST['score']) && isset($_POST['diff']))
 {
     echo(json_encode($DB->ActionUpload($_POST['uniqueKey'], $_POST['score'], $_POST['diff'])));
+}
+else if (isset($_POST['startupKey']) && isset($_POST['uniqueKey']))
+{
+    echo(json_encode($DB->ActionLogin($_POST['startupKey'], $_POST['uniqueKey'])));
 }
 else
 {

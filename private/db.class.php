@@ -97,6 +97,89 @@ class DB
         $this->Close();
     }
 
+    public function ActionLogin($startupKey, $uniqueKey)
+    {
+        Global $conn;
+
+        $this->Connect();
+        if ($startupKey = $this->startupKeyTemplate)
+        {
+            //Check DB for username with this uniqueKey.
+            $stmt = $conn->prepare("SELECT id, username FROM users WHERE accessKey = '$uniqueKey';");
+            $stmt->execute();
+
+            $count = $stmt->rowCount();
+
+            if ($count != 0)
+            {
+                try
+                {
+                    $data = $stmt->fetchAll()[0];
+                    $userId = $data['id'];
+                    $username = $data['username'];
+
+                    // Score_Slow
+                    $stmt = $conn->prepare("SELECT score FROM score_slow WHERE userId = $userId;");
+                    $stmt->execute();
+        
+                    $score = "";
+
+                    if ($count = $stmt->rowCount() == 0)
+                    {
+                        $score = $score."0 ";
+                    }
+                    else
+                    {
+                        $score = $score.$stmt->fetchAll()[0]['score']." ";
+                    }
+
+                    // Score_Normal
+                    $stmt = $conn->prepare("SELECT score FROM score_norm WHERE userId = $userId;");
+                    $stmt->execute();
+
+                    if ($count = $stmt->rowCount() == 0)
+                    {
+                        $score = $score."0 ";
+                    }
+                    else
+                    {
+                        $score = $score.$stmt->fetchAll()[0]['score']." ";
+                    }
+                    
+                    // Score_Fast
+                    $stmt = $conn->prepare("SELECT score FROM score_fast WHERE userId = $userId;");
+                    $stmt->execute();
+
+                    if ($count = $stmt->rowCount() == 0)
+                    {
+                        $score = $score."0";
+                    }
+                    else
+                    {
+                        $score = $score.$stmt->fetchAll()[0]['score'];
+                    }
+                    
+                    $this->Close();
+                    return array('responseCode' => "s130", 'msg' => "User data and key returned.", 'username' => $username, 'score' => $score);
+
+                }
+                catch (PDOException $e)
+                {
+                    $this->Close();
+                    $msg = "UsernameReg Failed: ".$e->getMessage();
+                    return array('responseCode' => "e131", 'msg' => $msg);
+                }
+            }
+            else
+            {
+                $this->Close();
+                return array('responseCode' => "e130", 'msg' => "Username dose not exists!");
+            }   
+        }
+
+        $this->Close();
+    }
+
     public function ActionUpload($uniqueKey, $score, $diff)
     {
         Global $conn;
@@ -135,28 +218,20 @@ class DB
             
 
             switch ($diff) {
-                case 1:
-                    $difficulty = "score_a";
+                case 0:
+                    $difficulty = "score_slow";
                     break;
                 
-                case 2:
-                    $difficulty = "score_b";
+                case 1:
+                    $difficulty = "score_norm";
                     break;
                     
-                case 3:
-                    $difficulty = "score_c";
-                    break;
-
-                case 4:
-                    $difficulty = "score_d";
-                    break;
-
-                case 5:
-                    $difficulty = "score_e";
+                case 2:
+                    $difficulty = "score_fast";
                     break;
                 default:
                     $this->Close();
-                    return array('responseCode' => "e123", 'msg' => "User created and key returned.", 'uniqueKey' => $uniqueKey);
+                    return array('responseCode' => "e123", 'msg' => "Unknown score type.");
             }
 
             try
