@@ -37,7 +37,6 @@ Action "Upload"
 }
 */
 
-
 if (isset($_POST['startupKey']) && isset($_POST['username']))
 {
     echo(json_encode($DB->ActionReg($_POST['startupKey'], $_POST['username'])));

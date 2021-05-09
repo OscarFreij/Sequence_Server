@@ -4,16 +4,22 @@ class DB
 {
     /// DB connection variable
     private $conn;
-    private $startupKeyTemplate = "jkvA4YRMuNrCvrr7x5bqPFffGYXRVvHL";
+    private $startupKeyTemplate;
 
-
-    private function GetCredentials()
+    public function GetCredentials()
     {
-        $servername = "localhost";
-        $dbname = "sequence";
-        $username = "sequence";
-        $password = "rKZVpRUCEXNEzPg3";
+        $file = fopen("../private/access.json", "r");
+        $rawData = fread($file,filesize("../private/access.json"));
+        fclose($file);
 
+        $data = json_decode($rawData);
+
+        $this->startupKeyTemplate = $data->startupKeyTemplate;
+        $servername = $data->servername;
+        $dbname = $data->dbname;
+        $username = $data->username;
+        $password = $data->password;
+        
         return array(
             'servername' => $servername,
             'dbname' => $dbname,
