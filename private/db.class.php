@@ -265,6 +265,89 @@ class DB
             return array('responseCode' => "e120", 'msg' => "User invalid!");
         }   
     }
+
+    public function ActionDisplay($displayRequest)
+    {
+        Global $conn;
+
+        // Get score within requested parameters
+
+        $limit = 25;
+        $startIndex = 0;
+        $difficulty = "";
+        $stmt;
+        
+        try 
+        {
+            $request = explode('_',$displayRequest);
+            $difficulty = $request[0];
+            $startIndex = $request[1];
+        } catch (Exception  $e) {
+            $this->Close();
+            $msg = "ScoreDisplay Failed: ".$e->getMessage();
+            return array('responseCode' => "e143", 'msg' => $msg);
+        }
+
+        $this->Connect();
+        
+        try
+        {    
+            switch ($difficulty) {
+                case 'fast':
+                    $stmt = $conn->prepare("SELECT users.username, score_fast.score, score_fast.date FROM score_fast INNER JOIN users ON score_fast.userId = users.id ORDER BY score_fast.score DESC LIMIT $startIndex, $limit;");        
+                    break;        
+                
+                case 'norm':
+                    $stmt = $conn->prepare("SELECT users.username, score_norm.score, score_norm.date FROM score_norm INNER JOIN users ON score_norm.userId = users.id ORDER BY score_norm.score DESC LIMIT $startIndex, $limit;");
+                    break;
+
+                case 'slow':
+                    $stmt = $conn->prepare("SELECT users.username, score_slow.score, score_slow.date FROM score_slow INNER JOIN users ON score_slow.userId = users.id ORDER BY score_slow.score DESC LIMIT $startIndex, $limit;");
+                    break;
+
+                default:
+                    $this->Close();
+                    return array('responseCode' => "e142", 'msg' => "unknown difficulty");
+                    break;
+            }
+            
+            $stmt->execute();
+            $rows = $stmt->fetchAll();
+            $data = "";
+
+            foreach ($rows as $key => $row) {
+                if (is_string($data))
+                {
+                    $data = array(0 => $this->ConstructDisplayItem($row));
+                }
+                else
+                {
+                    array_push($data, $this->ConstructDisplayItem($row));
+                }
+            }
+
+            $this->Close();
+            return array('responseCode' => "s140", 'msg' => "Score data parsed an returned", 'data' => $data);
+
+        }
+        catch (PDOException $e)
+        {
+            $this->Close();
+            $msg = "ScoreDisplay Failed: ".$e->getMessage();
+            return array('responseCode' => "e141", 'msg' => $msg);
+        } 
+
+        $this->Close();
+    }
+
+    private function ConstructDisplayItem($data)
+    {
+        $username = $data['username'];
+        $score = $data['score'];
+        $date = $data['date'];
+
+        return "<div class='scoreItem'><span class='username'>$username</span><span class='score'>$score</span><span class='date'>$date</span></div>";
+    }
 }
 
 ?>
