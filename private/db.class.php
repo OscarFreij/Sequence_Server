@@ -64,8 +64,26 @@ class DB
         Global $conn;
 
         $this->Connect();
-        if ($startupKey = $this->startupKeyTemplate)
+        if ($startupKey == $this->startupKeyTemplate)
         {
+            try
+            {
+                $usernamePOST = $this->CleanUsernameInput($username);
+                if ($usernamePOST != $username)
+                {
+                    $this->Close();
+                    return array('responseCode' => "e112", 'msg' => "Username can only contain letters and numbers! ".$username."|".$usernamePOST);
+                }
+            }
+            catch (Exception $e)
+            {
+                $this->Close();
+                $msg = "UsernameReg Failed: ".$e->getMessage();
+                return array('responseCode' => "e113", 'msg' => $msg);
+            }
+            
+            
+
             //Check DB for username availability.
             $stmt = $conn->prepare("SELECT id FROM users WHERE username = '$username';");
             $stmt->execute();
@@ -272,10 +290,10 @@ class DB
 
         // Get score within requested parameters
 
-        $limit = 25;
+        $limit = 5;
         $startIndex = 0;
         $difficulty = "";
-        $stmt;
+        $stmt = "";
         
         try 
         {
@@ -314,15 +332,17 @@ class DB
             $stmt->execute();
             $rows = $stmt->fetchAll();
             $data = "";
+            $pos = $startIndex;
 
             foreach ($rows as $key => $row) {
+                $pos ++;
                 if (is_string($data))
                 {
-                    $data = array(0 => $this->ConstructDisplayItem($row));
+                    $data = array(0 => $this->ConstructDisplayItem($row, $pos));
                 }
                 else
                 {
-                    array_push($data, $this->ConstructDisplayItem($row));
+                    array_push($data, $this->ConstructDisplayItem($row, $pos));
                 }
             }
 
@@ -340,13 +360,149 @@ class DB
         $this->Close();
     }
 
-    private function ConstructDisplayItem($data)
+    private function ConstructDisplayItem($data, $pos)
     {
         $username = $data['username'];
         $score = $data['score'];
         $date = $data['date'];
 
-        return "<div class='scoreItem'><span class='username'>$username</span><span class='score'>$score</span><span class='date'>$date</span></div>";
+        $element = '<ul class="list-group mb-3">
+                        <li class="list-group-item flex-fill list-group-item-info">'.$pos.'</li>
+                        <li class="list-group-item flex-fill">'.$username.'</li>
+                        <li class="list-group-item flex-fill">'.$score.'</li>
+                        <li class="list-group-item flex-fill">'.$date.'</li>
+                    </ul>';
+        return $element;
+        //return "<div class='scoreItem'><span class='username'>$username </span><span class='score'>$score </span><span class='date'>$date </span></div>";
+    }
+
+    private function GetUser($username)
+    {
+        //150
+        Global $conn;
+        $this->Connect();
+        try
+        {
+            $stmt = $conn->prepare("SELECT users.id, users.creationDate FROM users WHERE users.username = '$username';");
+            
+            $stmt->execute();
+            $data = $stmt->fetchAll()[0];
+
+            $stmt = $conn->prepare("SELECT score_fast.score, score_fast.date FROM score_fast INNER JOIN users ON score_fast.userId = users.id");
+            $stmt->execute();
+            $subData = $stmt->fetchAll()[0];
+
+            if (is_null($subData['score']))
+            {
+                $subData['score'] = "No Data";
+                $subData['date'] = "No Data";
+            }
+
+            array_push($data, array('sfs' => $subData['score'], 'sfd' => $subData['date']));
+
+            $stmt = $conn->prepare("SELECT score_norm.score, score_norm.date FROM score_norm INNER JOIN users ON score_norm.userId = users.id");
+            $stmt->execute();
+            $subData = $stmt->fetchAll()[0];
+
+            if (is_null($subData['score']))
+            {
+                $subData['score'] = "No Data";
+                $subData['date'] = "No Data";
+            }
+
+            array_push($data, array('sns' => $subData['score'], 'snd' => $subData['date']));
+
+            $stmt = $conn->prepare("SELECT score_slow.score, score_slow.date FROM score_slow INNER JOIN users ON score_slow.userId = users.id");
+            $stmt->execute();
+            $subData = $stmt->fetchAll()[0];
+
+            if (is_null($subData['score']))
+            {
+                $subData['score'] = "No Data";
+                $subData['date'] = "No Data";
+            }
+            
+            array_push($data, array('sss' => $subData['score'], 'ssd' => $subData['date']));
+            array_push($data, array('username' => $username));
+
+            $this->Close();
+            return array('responseCode' => "s160", 'msg' => "user querry parsed an returned", 'data' => $data);
+        }
+        catch (PDOException  $e) {
+            $this->Close();
+            $msg = "GetUser Failed: ".$e->getMessage();
+            return array('responseCode' => "e160", 'msg' => $msg);
+        }
+        
+        //$stmt = $conn->prepare("SELECT users.username, score_slow.score, score_slow.date FROM score_slow INNER JOIN users ON score_slow.userId = users.id ORDER BY score_slow.score DESC LIMIT $startIndex, $limit;");
+    }
+
+    public function GetUsers($querryUser)
+    {
+        //160
+        Global $conn;        
+        
+        $this->Connect();
+        try
+        {
+            $stmt = $conn->prepare("SELECT users.username FROM users WHERE users.username LIKE '%$querryUser%';");
+            $stmt->execute();
+            $rows = $stmt->fetchAll();    
+            $data = "";
+    
+            foreach ($rows as $key => $row) {
+                if (is_string($data))
+                {
+                    $data = array(0 => $this->PrepUserCard($this->GetUser($row['username'])['data']));
+                }
+                else
+                {
+                    array_push($data, $this->PrepUserCard($this->GetUser($row['username'])['data']));
+                }
+            }
+
+            $this->Close();
+            return array('responseCode' => "s170", 'msg' => "user querry parsed an returned", 'data' => $data);
+        }
+        catch (Exception  $e) {
+            $this->Close();
+            $msg = "GetUsers Failed: ".$e->getMessage();
+            return array('responseCode' => "e170", 'msg' => $msg);
+        }
+    }
+
+    private function PrepUserCard($data)
+    {
+        return ('<div class="col">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">'.$data[5]['username'].'</h5>
+                            <p class="card-text">Joind on '.$data['creationDate'].'<p>
+                            <div class="container">
+                                <ul class="list-group mb-3">
+                                    <li class="list-group-item flex-fill list-group-item-danger">Fast</li>
+                                    <li class="list-group-item flex-fill list-group-item-danger">'.$data[2]['sfs'].'</li>
+                                    <li class="list-group-item flex-fill list-group-item-danger">'.$data[2]['sfd'].'</li>
+                                </ul>
+                                <ul class="list-group mb-3">
+                                    <li class="list-group-item flex-fill list-group-item-warning">Normal</li>
+                                    <li class="list-group-item flex-fill list-group-item-warning">'.$data[3]['sns'].'</li>
+                                    <li class="list-group-item flex-fill list-group-item-warning">'.$data[3]['snd'].'</li>
+                                </ul>
+                                <ul class="list-group mb-1">
+                                    <li class="list-group-item flex-fill list-group-item-success">Slow</li>
+                                    <li class="list-group-item flex-fill list-group-item-success">'.$data[4]['sss'].'</li>
+                                    <li class="list-group-item flex-fill list-group-item-success">'.$data[4]['ssd'].'</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>');
+    }
+
+    private function CleanUsernameInput($username)
+    {
+        return preg_replace('/[\x00-\x2F\x3A-\x40\x5B-\x60\x7F-\xFF]/', '', $username);
     }
 }
 

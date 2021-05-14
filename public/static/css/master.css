@@ -1,0 +1,21 @@
+.card 
+{
+    transition-duration: 0.25s;
+}
+
+.card:hover
+{
+    margin: 0 -10px;
+    transition-duration: 0.25s;
+}
+
+#loadingGIF
+{
+    height: 200px;
+    width: 300px;
+    position: absolute;
+    left: 50%;
+    margin-left: -150px;
+    top: 50%;
+    margin-top: -100px;
+}
