@@ -388,7 +388,7 @@ class DB
             $stmt->execute();
             $data = $stmt->fetchAll()[0];
 
-            $stmt = $conn->prepare("SELECT score_fast.score, score_fast.date FROM score_fast INNER JOIN users ON score_fast.userId = users.id");
+            $stmt = $conn->prepare("SELECT score_fast.score, score_fast.date FROM score_fast INNER JOIN users ON score_fast.userId = users.id WHERE users.id = ".$data[0].";");
             $stmt->execute();
             $subData = $stmt->fetchAll()[0];
 
@@ -400,7 +400,7 @@ class DB
 
             array_push($data, array('sfs' => $subData['score'], 'sfd' => $subData['date']));
 
-            $stmt = $conn->prepare("SELECT score_norm.score, score_norm.date FROM score_norm INNER JOIN users ON score_norm.userId = users.id");
+            $stmt = $conn->prepare("SELECT score_norm.score, score_norm.date FROM score_norm INNER JOIN users ON score_norm.userId = users.id WHERE users.id = ".$data[0].";");
             $stmt->execute();
             $subData = $stmt->fetchAll()[0];
 
@@ -412,7 +412,7 @@ class DB
 
             array_push($data, array('sns' => $subData['score'], 'snd' => $subData['date']));
 
-            $stmt = $conn->prepare("SELECT score_slow.score, score_slow.date FROM score_slow INNER JOIN users ON score_slow.userId = users.id");
+            $stmt = $conn->prepare("SELECT score_slow.score, score_slow.date FROM score_slow INNER JOIN users ON score_slow.userId = users.id WHERE users.id = ".$data[0].";");
             $stmt->execute();
             $subData = $stmt->fetchAll()[0];
 
@@ -433,8 +433,6 @@ class DB
             $msg = "GetUser Failed: ".$e->getMessage();
             return array('responseCode' => "e160", 'msg' => $msg);
         }
-        
-        //$stmt = $conn->prepare("SELECT users.username, score_slow.score, score_slow.date FROM score_slow INNER JOIN users ON score_slow.userId = users.id ORDER BY score_slow.score DESC LIMIT $startIndex, $limit;");
     }
 
     public function GetUsers($querryUser)

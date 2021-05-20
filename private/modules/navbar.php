@@ -23,7 +23,7 @@
                 </ul>
             </li>
             </ul>
-            <form class="d-flex">
+            <form class="d-flex" action="#" onsubmit="searchUser();return false">
                 <input id="querryUserInput" class="form-control me-2"   type="search" placeholder="Search for users!" aria-label="Search">
                 <button class="btn btn-outline-light" type="button" onclick="searchUser()" >Seach</button>
             </form>
